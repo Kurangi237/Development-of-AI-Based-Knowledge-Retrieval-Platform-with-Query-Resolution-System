@@ -1,13 +1,9 @@
-from pathlib import Path
 import re
 import uuid
 
 import chromadb
 
-
-# Keep ChromaDB storage relative to the backend directory.
-BASE_DIR = Path(__file__).resolve().parent
-CHROMA_DB_PATH = BASE_DIR / "chroma_db"
+from app.core.config import CHROMA_DB_PATH
 
 client = chromadb.PersistentClient(
     path=str(CHROMA_DB_PATH)

@@ -1,12 +1,12 @@
 import re
 from typing import Any
 
-from chromadb_service import (
+from app.rag.chromadb_service import (
     search_documents,
     search_exact_documents,
 )
 
-from embedding import (
+from app.rag.embedding import (
     load_embedding_model,
     embed_chunks,
 )
