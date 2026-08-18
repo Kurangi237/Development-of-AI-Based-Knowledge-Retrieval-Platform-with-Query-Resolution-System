@@ -1,27 +1,124 @@
 from fastapi import APIRouter, HTTPException
 
 from app.models.request_models import QueryRequest
-from app.services.query_service import process_query
+from app.orchestration.workflow import run_workflow
 
-# Router for document query endpoints.
+
 router = APIRouter(
     tags=["Query"],
 )
 
 
-# Process a user query using semantic search.
 @router.post("/query")
-def query_documents(request: QueryRequest):
+def query_documents(
+    request: QueryRequest,
+):
+    """
+    Run the complete Milestone 2 LangGraph workflow.
 
-    # Validate the number of requested results.
+    Flow:
+        FastAPI
+            ↓
+        LangGraph Workflow
+            ↓
+        Query Understanding
+            ↓
+        Query Routing
+            ↓
+        Retrieval
+            ↓
+        Response Generation
+            ↓
+        Final Response
+    """
+
+    # -------------------------------------------------------------
+    # Validate request
+    # -------------------------------------------------------------
+
     if request.k < 1:
         raise HTTPException(
             status_code=400,
             detail="k must be at least 1",
         )
 
-    # Delegate query processing to the service layer.
-    return process_query(
-        request.query,
-        request.k,
-    )
+    try:
+        # ---------------------------------------------------------
+        # Run the complete LangGraph workflow
+        # ---------------------------------------------------------
+
+        result = run_workflow(
+            query=request.query,
+            k=request.k,
+        )
+
+        # ---------------------------------------------------------
+        # Handle workflow-level errors
+        # ---------------------------------------------------------
+
+        if result.get("error"):
+            raise HTTPException(
+                status_code=500,
+                detail=result["error"],
+            )
+
+        # ---------------------------------------------------------
+        # Extract Query Understanding result
+        # ---------------------------------------------------------
+
+        query_analysis = result.get(
+            "query_analysis"
+        )
+
+        query_understanding = None
+
+        if query_analysis is not None:
+            query_understanding = (
+                query_analysis.model_dump()
+            )
+
+        # ---------------------------------------------------------
+        # Return final Milestone 2 response
+        # ---------------------------------------------------------
+
+        return {
+            "success": True,
+            "query": request.query,
+
+            "query_understanding": (
+                query_understanding
+            ),
+
+            "route": result.get(
+                "route"
+            ),
+
+            "route_reason": result.get(
+                "route_reason"
+            ),
+
+            "retrieval": result.get(
+                "retrieval_result"
+            ),
+
+            "response": result.get(
+                "response"
+            ),
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=400,
+            detail=str(error),
+        )
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Query processing failed: {error}"
+            ),
+        )

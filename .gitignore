@@ -16,8 +16,8 @@ backend/metadata/documents.json
 # -------------------------
 # Frontend
 # -------------------------
-frontend/node_modules/
-frontend/dist/
+Frontend/node_modules/
+Frontend/dist/
 
 # -------------------------
 # Environment files

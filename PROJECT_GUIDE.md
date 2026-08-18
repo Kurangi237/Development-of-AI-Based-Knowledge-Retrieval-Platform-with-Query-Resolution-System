@@ -1,26 +1,48 @@
-# AI-Based Knowledge Retrieval Platform with Query Resolution System  
+# AI-Based Knowledge Retrieval Platform with Query Resolution System
 
 ## SECTION 1 — PROJECT OVERVIEW
 
 ### Project Objective
-The objective of this project is to provide an AI-powered Knowledge Retrieval Platform that allows users to upload documents (PDF, DOCX, TXT, CSV) and interactively query them using a Retrieval-Augmented Generation (RAG) approach.
+The objective of this project is to provide an AI-powered Knowledge Retrieval Platform that allows users to upload documents (PDF, DOCX, TXT, CSV) and interactively query them using a Retrieval-Augmented Generation (RAG) approach. Milestone 2 extends the Milestone 1 RAG pipeline into a multi-agent query-resolution workflow using Query Understanding, Retrieval, and Response Generation agents coordinated by LangGraph.
 
 ### Problem Statement
 Organizations and individuals often struggle to quickly extract meaningful and relevant information from large repositories of unstructured documents. Traditional keyword-based search is limited and lacks semantic understanding, making it difficult to answer complex queries based on specific proprietary data.
 
 ### Why Retrieval-Augmented Generation (RAG) is used
-RAG bridges the gap between the internal knowledge base of a large language model and external proprietary data. By storing document chunks in a vector database and retrieving semantically matching chunks at query time, RAG provides grounded, accurate context for the AI, reducing hallucinations and ensuring the responses are directly derived from the uploaded documents.
+RAG bridges the gap between the internal knowledge base of a large language model and external proprietary data. By storing document chunks in a vector database and retrieving semantically matching chunks at query time, RAG provides grounded, accurate context for the AI, reducing hallucinations and ensuring responses are derived from uploaded documents.
+
+### Milestone 2 Multi-Agent Resolution
+Milestone 2 builds a multi-agent resolution layer on top of the existing RAG infrastructure.
+
+The current workflow is:
+
+```text
+User Query
+    ↓
+Query Understanding Agent
+    ↓
+Query Router
+    ↓
+Retrieval Agent
+    ↓
+Response Generation Agent
+    ↓
+Grounded Answer + Sources + Confidence
+```
 
 ### End-to-End Workflow
 1. **Upload:** A user uploads a document via the React frontend.
-2. **Extraction & Chunking:** The FastAPI backend extracts text from the document and splits it into smaller chunks.
-3. **Embedding:** The chunks are converted into semantic vector embeddings using a SentenceTransformer model.
-4. **Storage:** The embeddings and original text chunks are stored in ChromaDB, while metadata is saved in a local JSON file.
-5. **Querying:** The user submits a query via the chat interface.
-6. **Retrieval:** The backend embeds the query, searches ChromaDB for the most relevant document chunks, and returns them to the frontend with relevance scores.
+2. **Extraction & Chunking:** The FastAPI backend extracts text and splits it into smaller chunks.
+3. **Embedding:** Chunks are converted into semantic vector embeddings using SentenceTransformer.
+4. **Storage:** Embeddings and chunks are stored in ChromaDB, while document metadata is persisted in local JSON.
+5. **Querying:** The user submits a natural-language query through the chat interface.
+6. **Query Understanding:** The Query Understanding Agent normalizes the query, extracts entities/keywords/exact terms, and classifies the query.
+7. **Routing:** LangGraph uses deterministic routing based on the structured query-understanding result.
+8. **Retrieval:** The Retrieval Agent performs semantic search and optional exact search, merges candidates, reranks them, filters low-confidence candidates, and returns final context.
+9. **Response Generation:** The Response Generation Agent creates a grounded answer using only the retrieved context and adds source citations and a confidence indicator.
 
 ### Overall System Architecture
-The system follows a clean client-server architecture. The frontend is a React Single Page Application (SPA) built with Vite, handling UI state and API interactions. The backend is a FastAPI Python application responsible for document processing, RAG operations, and API routing. They communicate over REST API.
+The frontend remains a React SPA built with Vite. The backend is a FastAPI application. REST requests enter the API layer and the `/query` endpoint delegates query orchestration to a LangGraph workflow. The agents remain separated by responsibility and the existing Milestone 1 RAG modules continue to provide embeddings, ChromaDB access, extraction and chunking.
 
 ---
 
@@ -29,61 +51,61 @@ The system follows a clean client-server architecture. The frontend is a React S
 ### Backend
 | Technology | Description |
 |---|---|
-| Python 3 | Core programming language for the backend |
-| FastAPI | High-performance async web framework for building APIs |
-| Uvicorn | ASGI server for running FastAPI |
+| Python 3 | Core backend language |
+| FastAPI | HTTP API framework |
+| Uvicorn | ASGI server |
+| Pydantic | Request and response validation |
 
 ### Frontend
 | Technology | Description |
 |---|---|
-| React 19 | UI library for building the interactive frontend |
-| Vite | Fast build tool and development server |
-| Vanilla CSS | Used for all styling (index.css, App.css) |
+| React 19 | UI library |
+| Vite | Build tool and development server |
+| Vanilla CSS | Styling system |
 
-### Libraries
+### AI / Agent Frameworks
 | Technology | Description |
 |---|---|
-| pypdf | Library for extracting text from PDF files |
-| python-docx | Library for extracting text from DOCX files |
-| pandas | Data manipulation library used for parsing CSV files |
-| python-multipart | Needed by FastAPI to parse form data for file uploads |
+| LangChain | Text splitting and LLM integration |
+| LangGraph | Multi-agent workflow orchestration |
+| langchain-groq | LangChain integration for Groq chat models |
+| Sentence Transformers | Semantic embedding generation |
 
-### Frameworks
+### LLM Configuration
 | Technology | Description |
 |---|---|
-| LangChain | Framework used for text splitting (RecursiveCharacterTextSplitter) |
-| Sentence Transformers | Framework for generating vector embeddings |
+| Groq | LLM provider for Query Understanding and Response Generation |
+| Configured model | Controlled through `GROQ_MODEL` in `backend/.env` |
+| Environment variables | `GROQ_API_KEY` and `GROQ_MODEL` are loaded centrally by `app/core/llm.py` |
 
 ### Database
 | Technology | Description |
 |---|---|
-| Local JSON | Used for lightweight document metadata persistence (documents.json) |
+| Local JSON | Lightweight document metadata and processing-state persistence |
 
 ### Vector Database
 | Technology | Description |
 |---|---|
-| ChromaDB | Open-source embedding database for storing and querying vector data |
+| ChromaDB | Persistent vector storage and semantic retrieval |
 
 ### Embedding Model
 | Technology | Description |
 |---|---|
-| all-MiniLM-L6-v2 | Lightweight, fast embedding model from SentenceTransformers |
+| all-MiniLM-L6-v2 | Lightweight SentenceTransformer embedding model |
 
 ### Document Processing Libraries
 | Technology | Description |
 |---|---|
-| pypdf, python-docx, pandas, langchain-text-splitters | Stack for parsing multiple file formats and chunking texts |
+| pypdf | PDF extraction |
+| python-docx | DOCX extraction |
+| pandas | CSV parsing |
+| langchain-text-splitters | Recursive text chunking |
 
 ### Development Tools
 | Technology | Description |
 |---|---|
-| Oxlint | Fast linter used for checking frontend code |
-
-### Build Tools
-| Technology | Description |
-|---|---|
-| Vite | Frontend build tool |
-| npm | Node package manager |
+| Oxlint | Frontend linting |
+| npm | Frontend package management |
 
 ---
 
@@ -91,71 +113,107 @@ The system follows a clean client-server architecture. The frontend is a React S
 
 ```text
 AI-Based Knowledge Retrieval Platform with Query Resolution System/
-├── backend/                  # Backend FastAPI application
-│   ├── app/                  # Main application package
-│   │   ├── __init__.py       # Package marker
-│   │   ├── main.py           # FastAPI application entry point
-│   │   ├── api/              # API Routers layer
-│   │   │   ├── __init__.py   # Package marker
-│   │   │   ├── documents.py  # Endpoints for document management
-│   │   │   ├── health.py     # Endpoints for health checks
-│   │   │   ├── query.py      # Endpoints for query processing
-│   │   │   └── upload.py     # Endpoints for file uploads
-│   │   ├── core/             # Core configurations
-│   │   │   ├── __init__.py   # Package marker
-│   │   │   └── config.py     # Centralized configuration variables
-│   │   ├── models/           # Pydantic data models
-│   │   │   ├── __init__.py   # Package marker
-│   │   │   ├── request_models.py   # Request validation models
-│   │   │   └── response_models.py  # Response validation models (empty)
-│   │   ├── rag/              # Retrieval-Augmented Generation logic
-│   │   │   ├── __init__.py         # Package marker
-│   │   │   ├── chromadb_service.py # Vector database operations
-│   │   │   ├── chunking.py         # Text chunking logic
-│   │   │   ├── embedding.py        # Model loading and embedding generation
-│   │   │   └── extractor.py        # Text extraction for PDF, DOCX, TXT, CSV
-│   │   ├── services/         # Business logic layer
-│   │   │   ├── __init__.py         # Package marker
-│   │   │   ├── document_service.py # Logic for document management
-│   │   │   ├── metadata_service.py # JSON persistence and status tracking
-│   │   │   ├── query_service.py    # Hybrid retrieval pipeline logic
-│   │   │   └── upload_service.py   # Orchestration of file processing
-│   │   └── utils/            # Shared utilities
-│   │       └── __init__.py   # Package marker
-│   ├── chroma_db/            # Persistent storage directory for ChromaDB
-│   ├── metadata/             # Persistent storage for metadata JSON
-│   ├── uploads/              # Temporary storage for uploaded files
-│   ├── requirements.txt      # Python dependencies
-│   └── sample.txt            # Sample file for testing
-├── Frontend/                 # React frontend application
-│   ├── public/               # Public static assets
-│   ├── src/                  # Source code for React app
-│   │   ├── assets/           # Images and media (hero.jpg)
-│   │   ├── components/       # Reusable React components
-│   │   │   ├── ChatBubble.jsx   # Renders individual chat messages
-│   │   │   ├── FileUploader.jsx # Drag & drop file upload widget
-│   │   │   ├── Footer.jsx       # Global page footer
-│   │   │   └── Sidebar.jsx      # Navigation sidebar
-│   │   ├── pages/            # Page-level components
-│   │   │   ├── ChatPage.jsx     # AI Chatbot interface
-│   │   │   └── UploadPage.jsx   # Knowledge base management interface
-│   │   ├── services/         # Frontend business logic and APIs
-│   │   │   └── api.js        # Functions for backend API communication
-│   │   ├── App.css           # Global layout styling
-│   │   ├── App.jsx           # Main React component and router substitute
-│   │   ├── index.css         # CSS design system and variables
-│   │   └── main.jsx          # React DOM entry point
-│   ├── .gitignore            # Git ignore rules
-│   ├── .oxlintrc.json        # Oxlint configuration
-│   ├── index.html            # Vite HTML entry point
-│   ├── package-lock.json     # Node dependencies lockfile
-│   ├── package.json          # Node dependencies and scripts
-│   ├── vite.config.js        # Vite configuration
-│   └── workflow.md           # Documentation for frontend workflows
-├── .git/                     # Git repository
-├── .gitignore                # Git ignore rules for root
-└── README.md                 # Project documentation
+├── backend/
+│   ├── app/
+│   │   ├── __init__.py
+│   │   ├── main.py
+│   │   ├── api/
+│   │   │   ├── __init__.py
+│   │   │   ├── documents.py
+│   │   │   ├── health.py
+│   │   │   ├── query.py
+│   │   │   └── upload.py
+│   │   ├── core/
+│   │   │   ├── __init__.py
+│   │   │   ├── config.py
+│   │   │   └── llm.py
+│   │   ├── models/
+│   │   │   ├── __init__.py
+│   │   │   ├── request_models.py
+│   │   │   └── response_models.py
+│   │   ├── rag/
+│   │   │   ├── __init__.py
+│   │   │   ├── chromadb_service.py
+│   │   │   ├── chunking.py
+│   │   │   ├── embedding.py
+│   │   │   └── extractor.py
+│   │   ├── services/
+│   │   │   ├── __init__.py
+│   │   │   ├── document_service.py
+│   │   │   ├── metadata_service.py
+│   │   │   ├── query_service.py       # Milestone 1 baseline retained
+│   │   │   └── upload_service.py
+│   │   ├── agents/
+│   │   │   ├── __init__.py
+│   │   │   ├── query_understanding/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── agent.py
+│   │   │   │   ├── classifier.py
+│   │   │   │   ├── normalizer.py
+│   │   │   │   ├── extractor.py
+│   │   │   │   └── schemas.py
+│   │   │   ├── retrieval/
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── agent.py
+│   │   │   │   ├── semantic_search.py
+│   │   │   │   ├── exact_search.py
+│   │   │   │   └── reranker.py
+│   │   │   └── response_generation/
+│   │   │       ├── __init__.py
+│   │   │       ├── agent.py
+│   │   │       ├── prompt_builder.py
+│   │   │       ├── llm_call_groq.py
+│   │   │       └── schemas.py
+│   │   ├── orchestration/
+│   │   │   ├── __init__.py
+│   │   │   ├── query_router.py
+│   │   │   └── workflow.py
+│   │   └── utils/
+│   │       └── __init__.py
+│   ├── chroma_db/
+│   ├── metadata/
+│   ├── uploads/
+│   ├── .env                 # local only; never commit secrets
+│   ├── requirements.txt
+│   └── test_retrieval_agent.py
+├── Frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── assets/
+│   │   ├── components/
+│   │   │   ├── ChatBubble.jsx
+│   │   │   ├── FileUploader.jsx
+│   │   │   ├── Footer.jsx
+│   │   │   └── Sidebar.jsx
+│   │   ├── pages/
+│   │   │   ├── ChatPage.jsx
+│   │   │   └── UploadPage.jsx
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── App.css
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── .gitignore
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── vite.config.js
+│   └── workflow.md
+├── .gitignore
+├── PROJECT_GUIDE.md
+└── README.md
 ```
+
+### Orchestration Design Decision
+The Milestone 2 orchestration layer intentionally contains only:
+
+```text
+orchestration/
+├── query_router.py
+└── workflow.py
+```
+
+Separate `state.py` and `nodes.py` files are not required for the current three-agent workflow. `workflow.py` contains the compact LangGraph state definition, node functions, graph construction and public runner. Agent business logic remains inside the agent packages.
 
 ---
 
@@ -163,124 +221,130 @@ AI-Based Knowledge Retrieval Platform with Query Resolution System/
 
 ```mermaid
 graph TD
-    User([User]) --> |Uploads/Queries| RF[React Frontend]
-    RF --> |HTTP/REST| AL[API Layer FastAPI]
-    AL --> |Routes Requests| SL[Services Layer]
-    SL --> |Manages Data| MD[Metadata JSON]
-    SL --> |Orchestrates| RAG[RAG Module]
-    RAG --> |Extracts| EX[Extractor]
-    RAG --> |Splits| CH[Chunking]
-    RAG --> |Embeds| EM[Embedding Model]
-    RAG --> |Stores/Retrieves Vectors| VDB[(ChromaDB)]
-    VDB --> |Returns Matches| RAG
-    RAG --> |Ranks Results| SL
-    SL --> |JSON Response| AL
-    AL --> |HTTP Response| RF
-    RF --> |Updates UI| User
+    U([User]) --> FE[React Frontend]
+    FE --> API[FastAPI API]
+    API --> WF[LangGraph Workflow]
+    WF --> QU[Query Understanding Agent]
+    QU --> RT[Query Router]
+    RT --> RA[Retrieval Agent]
+    RA --> SS[Semantic Search]
+    RA --> ES[Optional Exact Search]
+    RA --> RR[Query-aware Reranker]
+    RR --> LF[Low-confidence Filter]
+    LF --> RG[Response Generation Agent]
+    RG --> LLM[Shared Groq LLM]
+    RA --> VDB[(ChromaDB)]
+    VDB --> RA
+    RG --> API
+    API --> FE
 ```
 
 ---
 
 ## SECTION 5 — FRONTEND ARCHITECTURE
 
+The existing React architecture remains valid for Milestone 2. The primary backend-facing change is the shape of the `/query` response: the API now exposes query-understanding information, routing information, retrieval results, and a grounded generated response.
+
 ### Folder Structure
-- `src/components/`: Reusable, stateless or tightly-scoped UI components.
-- `src/pages/`: Stateful, high-level views that assemble components into screens.
-- `src/services/`: Logic for external communication (API client).
-- `src/assets/`: Static media like images.
+- `src/components/`: Reusable UI components.
+- `src/pages/`: Page-level screens.
+- `src/services/`: API communication.
+- `src/assets/`: Static media.
 
-### Components
-- `ChatBubble.jsx`: Renders messages from both the user and the bot, handling UI for time formatting, "AI Assistant" avatars, and the source attribution pill buttons.
-- `FileUploader.jsx`: Provides a drag-and-drop interface, handles the `multipart/form-data` upload API call, tracks progress, and polls the backend for background processing status.
-- `Footer.jsx`: A simple presentational footer displaying links and stack info.
-- `Sidebar.jsx`: The left-side navigation allowing switching between "Upload Documents" and "AI Chatbot".
+### Current Frontend Responsibilities
+- `ChatPage.jsx`: Sends user questions and displays generated answers.
+- `ChatBubble.jsx`: Displays user/bot messages and source information.
+- `UploadPage.jsx`: Uploads documents and manages document status.
+- `FileUploader.jsx`: Handles multipart upload and progress.
+- `api.js`: Centralizes REST calls.
 
-### Pages
-- `ChatPage.jsx`: Manages the chat history state, handles message sending, controls the typing indicator, and contains the "Context Inspector" side panel to view raw source chunks.
-- `UploadPage.jsx`: Displays statistics regarding the uploaded documents (total size, chunks, etc.), mounts the `FileUploader`, and lists all currently uploaded documents with options to delete them.
+### Milestone 2 Integration Note
+The frontend should consume the `/query` response fields:
 
-### Services
-- `api.js`: Contains all `fetch` wrapper functions to communicate with the FastAPI backend (`getDocuments`, `uploadDocument`, `getUploadStatus`, `deleteDocument`, `sendChatMessage`). Provides a mock mode for UI testing without the backend.
-
-### Hooks
-The frontend heavily utilizes standard React hooks like `useState`, `useEffect`, and `useRef` directly within components to manage UI states, polling intervals, and scrolling behaviors. No custom external hooks are defined.
-
-### Assets
-Contains static files like `hero.jpg` which is used as the application logo in the `Sidebar.jsx`.
-
-### Styles
-- `index.css`: Houses CSS custom properties (variables) for colors, glassmorphism effects, shadows, animations, and global reset styles.
-- `App.css`: Defines layout rules for the `main-app` grid and `sidebar` widths.
-
-### Utilities
-Utilities like date formatting (`formatDate`) and byte formatting (`formatBytes`) are localized within the specific components (`UploadPage.jsx`, `ChatBubble.jsx`) that need them.
-
-### Reusable Components
-`ChatBubble` is reusable across any chat interface. `FileUploader` handles its own complex state and can be embedded anywhere a file upload is needed.
-
-### Routing
-No traditional routing library (like React Router) is used. Instead, conditional rendering is managed via the `activeTab` state in `App.jsx`, switching between `UploadPage` and `ChatPage`.
-
-### State Management
-State is localized to components using React's `useState`. High-level state (like the active tab) is held in `App.jsx` and passed down as props.
-
-### API Communication
-All backend interaction is abstracted into `services/api.js`. It utilizes the native `fetch` API for JSON requests and `XMLHttpRequest` for file uploads to support upload progress tracking.
-
-### Styling Approach
-The project uses vanilla CSS with a design system based on CSS variables (`var(--accent-purple)`, etc.). It employs a "Glassmorphism" aesthetic with semi-transparent backgrounds and backdrops.
-
-### Component Hierarchy
 ```text
-App
-├── Sidebar
-└── Main Content
-    ├── UploadPage (if activeTab === 'upload')
-    │   ├── FileUploader
-    │   └── Footer
-    └── ChatPage (if activeTab === 'chat')
-        ├── ChatBubble (list)
-        └── Context Inspector
+response.answer
+response.sources
+response.confidence
 ```
+
+and may additionally use:
+
+```text
+query_understanding
+route
+retrieval.results
+```
+
+for debugging or a developer-facing context inspector. No frontend redesign is required for the backend Milestone 2 orchestration itself.
 
 ---
 
 ## SECTION 6 — BACKEND ARCHITECTURE
 
-### `app/`
-The main Python package containing all application logic.
-
 ### `app/api/`
-The presentation layer for the backend. Contains FastAPI routers which only handle HTTP requests and responses, delegating business logic to services.
-- `documents.py`: Endpoints to get and delete indexed documents.
-- `health.py`: Simple root endpoint to verify API health.
-- `query.py`: Endpoint for sending search queries.
-- `upload.py`: Endpoints for uploading files and checking job statuses.
+The presentation layer. Routers handle HTTP validation and delegate query orchestration to the LangGraph workflow.
 
-### `app/services/`
-The business logic layer.
-- `document_service.py`: Orchestrates fetching document lists and deleting documents, linking ChromaDB deletion with Metadata JSON deletion.
-- `metadata_service.py`: Handles reading and writing to `documents.json` and manages in-memory processing job states.
-- `query_service.py`: Executes the hybrid retrieval pipeline (semantic search + exact matching) and scores/reranks chunks.
-- `upload_service.py`: Coordinates the long-running upload pipeline (saving file, extracting, chunking, embedding, saving to ChromaDB).
-
-### `app/rag/`
-The core AI processing modules.
-- `chromadb_service.py`: Connects to ChromaDB, manages collections, inserts chunks, and runs vector and exact keyword searches.
-- `chunking.py`: Uses LangChain to split large texts into 500-character overlapping chunks.
-- `embedding.py`: Loads the SentenceTransformer model and generates vector arrays.
-- `extractor.py`: Uses `pypdf`, `python-docx`, and `pandas` to read raw text from files.
-
-### `app/models/`
-Pydantic data models for request/response validation.
-- `request_models.py`: Validates input schemas (e.g., `QueryRequest`).
-- `response_models.py`: Currently empty, can be used for typed responses.
+- `documents.py`: Document listing and deletion endpoints.
+- `health.py`: Health endpoint.
+- `query.py`: Delegates `/query` to `run_workflow()`.
+- `upload.py`: Upload and upload-status endpoints.
 
 ### `app/core/`
-- `config.py`: Centralizes constants, file paths, and environment variables like `UPLOAD_FOLDER` and `CHROMA_DB_PATH`.
+- `config.py`: Paths, file limits and application constants.
+- `llm.py`: Centralized shared LLM initialization from `backend/.env`.
 
-### `app/utils/`
-Contains `__init__.py`. Placeholder for shared utilities.
+### `app/services/`
+- `document_service.py`: Document listing/deletion business logic.
+- `metadata_service.py`: JSON metadata and processing status.
+- `query_service.py`: Retained as the Milestone 1 baseline for comparison/backward compatibility; it is not the Milestone 2 orchestration entry point.
+- `upload_service.py`: Document ingestion pipeline.
+
+### `app/agents/query_understanding/`
+Responsibilities:
+- Query normalization.
+- Search-query normalization.
+- Entity extraction.
+- Keyword extraction.
+- Exact-term extraction.
+- Query classification into factual, procedural, comparative, or ambiguous.
+- Structured `QueryUnderstandingResult` output.
+
+### `app/agents/retrieval/`
+Responsibilities:
+- Semantic candidate generation.
+- Optional exact candidate generation.
+- Candidate merging/deduplication.
+- Query-aware relevance ranking.
+- Exact-term/keyword evidence scoring.
+- Low-confidence filtering.
+- Final Top-K context selection.
+
+The Retrieval Agent itself does not require an LLM.
+
+### `app/agents/response_generation/`
+Responsibilities:
+- Grounded prompt construction.
+- Shared Groq LLM invocation.
+- Citation extraction.
+- Source metadata preservation.
+- Retrieval-aware confidence estimation.
+- Validated `LLMResponse` output.
+
+### `app/orchestration/`
+
+#### `query_router.py`
+Deterministic routing based on the structured query-understanding result. Current Milestone 2 routes factual, procedural, comparative, and ambiguous queries through the retrieval path because a Clarification Agent is not yet part of the implemented workflow.
+
+#### `workflow.py`
+Compact LangGraph orchestration containing:
+- shared workflow state
+- Query Understanding node
+- routing node
+- Retrieval node
+- Response Generation node
+- conditional edges
+- graph compilation
+- public `run_workflow()` API
 
 ---
 
@@ -291,185 +355,287 @@ Contains `__init__.py`. Placeholder for shared utilities.
 sequenceDiagram
     participant OS
     participant FastAPI
+    participant LLM
     participant EmbeddingModel
     participant ChromaDB
     OS->>FastAPI: Run `uvicorn app.main:app`
-    FastAPI->>EmbeddingModel: load_embedding_model()
-    EmbeddingModel-->>FastAPI: Model Loaded in Memory
+    FastAPI->>LLM: Load shared Groq client/config
+    FastAPI->>EmbeddingModel: Load embedding model when retrieval is initialized
     FastAPI->>ChromaDB: PersistentClient(path)
-    ChromaDB-->>FastAPI: DB Ready
     FastAPI-->>OS: Listening on port 8000
 ```
 
 ### Document Upload & Processing
+The Milestone 1 ingestion flow remains unchanged:
+
 ```mermaid
 sequenceDiagram
     participant User
     participant Frontend
     participant API
     participant UploadService
-    participant BackgroundTask
     participant RAG
-
-    User->>Frontend: Selects File
-    Frontend->>API: POST /upload (multipart/form-data)
+    User->>Frontend: Selects file
+    Frontend->>API: POST /upload
     API->>UploadService: create_upload_job()
-    UploadService-->>API: Returns Job ID
-    API->>BackgroundTask: add_task(process_uploaded_document)
-    API-->>Frontend: 202 Accepted (Job ID)
-    Frontend->>API: Poll GET /upload/status/{id}
-    
-    BackgroundTask->>UploadService: process_uploaded_document()
+    UploadService-->>API: Job ID
+    API-->>Frontend: 202 Accepted
+    Frontend->>API: Poll upload status
     UploadService->>RAG: extract_document()
-    UploadService->>RAG: chunk_text()
-    UploadService->>RAG: embed_chunks()
-    UploadService->>RAG: add_documents()
-    UploadService->>UploadService: update_job(status="completed")
-    
-    API-->>Frontend: Returns "completed" status
-    Frontend-->>User: Updates UI
+    RAG->>RAG: chunk_text()
+    RAG->>RAG: embed_chunks()
+    RAG->>RAG: add_documents()
+    UploadService-->>API: completed
 ```
 
-### Query Processing
+### Milestone 2 Query Processing
 ```mermaid
 sequenceDiagram
     participant User
     participant Frontend
     participant API
-    participant QueryService
-    participant RAG
-    
+    participant Workflow
+    participant QUA as Query Understanding
+    participant RA as Retrieval
+    participant RGA as Response Generation
+
     User->>Frontend: Types query
-    Frontend->>API: POST /query {query, k:3}
-    API->>QueryService: process_query()
-    QueryService->>RAG: embed_chunks(query)
-    QueryService->>RAG: search_documents(query_embedding)
-    QueryService->>RAG: search_exact_documents(exact_terms)
-    QueryService->>QueryService: merge_results() & rerank_results()
-    QueryService-->>API: Returns Top K matches
-    API-->>Frontend: 200 OK (matches)
-    Frontend-->>User: Displays ChatBubble with sources
+    Frontend->>API: POST /query
+    API->>Workflow: run_workflow(query, k)
+    Workflow->>QUA: run(query)
+    QUA-->>Workflow: QueryUnderstandingResult
+    Workflow->>Workflow: route_query()
+    Workflow->>RA: run(QueryUnderstandingResult, k)
+    RA-->>Workflow: Ranked/filtered chunks
+    Workflow->>RGA: generate_response(question, chunks)
+    RGA-->>Workflow: LLMResponse
+    Workflow-->>API: Final workflow state
+    API-->>Frontend: JSON response
 ```
 
 ---
 
 ## SECTION 8 — REQUEST FLOW
 
-1. **Frontend:** React makes an HTTP request via `services/api.js`.
-2. **API Layer (`main.py`):** The request enters FastAPI, passes through CORS middleware, and is routed to the appropriate APIRouter.
-3. **FastAPI Router (`app/api/*`):** The router validates the HTTP request (e.g., checks if a file is attached or validates JSON body via Pydantic).
-4. **Service Layer (`app/services/*`):** The router calls a service function, passing only the necessary data. The service handles the business logic.
-5. **RAG Module (`app/rag/*`):** If the service requires AI operations, it calls the `rag/` modules to extract text, chunk it, or generate embeddings.
-6. **ChromaDB / Metadata JSON:** Data is read from or written to ChromaDB (for vectors) and `documents.json` (for job states and metadata).
-7. **Response:** The Service Layer returns standard Python dictionaries back to the Router. The Router implicitly converts these to JSON and returns them to the Frontend.
+1. **Frontend:** React sends a query through `services/api.js`.
+2. **API Layer:** FastAPI validates the request.
+3. **Orchestration:** `query.py` calls `run_workflow()`.
+4. **Query Understanding:** The workflow produces structured query information.
+5. **Routing:** `query_router.py` selects the current resolution path.
+6. **Retrieval:** The Retrieval Agent generates and ranks candidates.
+7. **Response Generation:** The Response Generation Agent creates a grounded answer with citations.
+8. **Response:** The workflow result is converted into the JSON response returned to the frontend.
 
 ---
 
 ## SECTION 9 — FRONTEND COMPONENT FLOW
 
-- **How components communicate:** The application uses prop drilling to pass down state and callbacks. For instance, `App.jsx` passes `setActiveTab` to `Sidebar.jsx`, and `onStartChat` to `UploadPage.jsx` which passes it further if needed.
-- **How API requests are made:** Components call asynchronous functions inside `services/api.js` inside a `try/catch` block.
-- **How responses update UI:** Successful API calls resolve and trigger a React `setState` update, re-rendering the component with the new data (e.g., appending a message to the chat array).
-- **How loading states are handled:** Local boolean state variables (like `isTyping` in `ChatPage.jsx` or `loading` in `UploadPage.jsx`) determine whether to show spinners or typing indicators.
-- **How errors are handled:** `services/api.js` checks `response.ok` and throws an Error with the backend's detail message. The components catch this error and update an `errorMessage` state, which is displayed to the user.
+The existing component flow remains:
+
+```text
+App
+├── Sidebar
+└── Main Content
+    ├── UploadPage
+    │   ├── FileUploader
+    │   └── Footer
+    └── ChatPage
+        ├── ChatBubble list
+        └── Context Inspector
+```
+
+For Milestone 2, `ChatPage` should display at minimum:
+- generated answer
+- source references
+- optional confidence indicator
 
 ---
 
 ## SECTION 10 — BACKEND ROUTERS
 
-| Router | Method | Route | Input | Output | Services Used |
+| Router | Method | Route | Input | Output | Backend Handler |
 |---|---|---|---|---|---|
-| **Health** | GET | `/` | None | JSON status msg | None |
-| **Documents**| GET | `/documents` | None | List of metadata objects | `get_all_documents` |
-| **Documents**| DELETE | `/documents/{id}` | Path param: `document_id` | JSON success msg | `delete_document_by_id` |
-| **Query** | POST | `/query` | JSON Body: `QueryRequest` | JSON matches array | `process_query` |
-| **Upload** | POST | `/upload` | FormData: `file` | JSON accepted status + Job ID | `create_upload_job`, `process_uploaded_document` |
-| **Upload** | GET | `/upload/status/{id}`| Path param: `job_id` | JSON job state | `get_upload_job_status` |
+| Health | GET | `/` | None | JSON health message | None |
+| Documents | GET | `/documents` | None | Document metadata | `get_all_documents` |
+| Documents | DELETE | `/documents/{id}` | Path `document_id` | Deletion status | `delete_document_by_id` |
+| Query | POST | `/query` | `QueryRequest` | Query-understanding + retrieval + response | `run_workflow` |
+| Upload | POST | `/upload` | Multipart file | Accepted status + job ID | Upload service |
+| Upload | GET | `/upload/status/{id}` | Path `job_id` | Job state | Upload service |
 
 ---
 
-## SECTION 11 — SERVICE LAYER
+## SECTION 11 — SERVICE / AGENT LAYER
 
-### `upload_service.py`
-- **Responsibilities:** Orchestrates the entire document ingestion pipeline safely. Validates file types and sizes, creates a temporary file on disk, initializes the background job state, and orchestrates extraction, chunking, embedding, and vector storage.
-- **Dependencies:** `app.core.config`, `app.rag.*`, `app.services.metadata_service`.
+### Milestone 1 baseline
+`query_service.py` remains available as the original hybrid retrieval implementation for comparison and backward compatibility.
 
-### `query_service.py`
-- **Responsibilities:** Handles semantic and keyword searches. Normalizes query text, extracts specific identifiers (e.g., email addresses, exact names), performs a hybrid retrieval by merging semantic and exact matches, reranks them based on relevance, and formats the output.
-- **Dependencies:** `app.rag.chromadb_service`, `app.rag.embedding`.
+### Milestone 2 agent layer
+The new `/query` execution path does not call `query_service.process_query()` directly. Instead, FastAPI calls the LangGraph workflow, which delegates to the three agent implementations.
 
-### `document_service.py`
-- **Responsibilities:** Fetches lists of documents and handles deletion. When deleting, it ensures that both the vector embeddings in ChromaDB and the metadata in the JSON file are removed in sync.
-- **Dependencies:** `app.rag.chromadb_service`, `app.services.metadata_service`.
-
-### `metadata_service.py`
-- **Responsibilities:** Provides basic persistence for document metadata and in-memory tracking of background processing jobs.
-- **Dependencies:** `json`, `app.core.config`.
-
-### Why business logic is kept here:
-Keeping business logic in the service layer enforces Clean Architecture principles. Routers are purely for HTTP mechanics, and RAG modules are purely for algorithmic AI tasks. The service layer acts as the orchestrator, making the codebase testable and modular.
+This keeps:
+- API concerns in `app/api/`
+- orchestration concerns in `app/orchestration/`
+- agent logic in `app/agents/`
+- RAG infrastructure in `app/rag/`
 
 ---
 
 ## SECTION 12 — RAG PIPELINE
 
+The underlying RAG infrastructure from Milestone 1 is retained:
+
 ```mermaid
 graph LR
-    E[extractor.py] -->|Raw Text| C[chunking.py]
-    C -->|Text Chunks| EMB[embedding.py]
-    EMB -->|Vector Embeddings| DB[chromadb_service.py]
+    E[extractor.py] --> C[chunking.py]
+    C --> EMB[embedding.py]
+    EMB --> DB[chromadb_service.py]
+    DB --> SR[Semantic Retrieval]
 ```
-- **`extractor.py`**: Identifies file type and uses external libraries to strip out raw text.
-- **`chunking.py`**: Utilizes `RecursiveCharacterTextSplitter` to break the raw text into 500-character pieces with 50-character overlaps to maintain context context.
-- **`embedding.py`**: Uses `SentenceTransformer("all-MiniLM-L6-v2")` to encode the text chunks into multidimensional floating-point vectors.
-- **`chromadb_service.py`**: Interfaces with the database to store the chunk string, its corresponding vector, and its metadata. Also exposes query methods to find the nearest vectors mathematically.
+
+The Milestone 2 Retrieval Agent uses this existing infrastructure rather than replacing it.
+
+### Retrieval Agent Pipeline
+```text
+QueryUnderstandingResult
+        ↓
+search_query
+        ↓
+Semantic Search
+        +
+Optional Exact Search
+        ↓
+Merge / Deduplicate
+        ↓
+Query-aware Reranking
+        ↓
+Low-confidence Filtering
+        ↓
+Diversification
+        ↓
+Top-K Context
+```
 
 ---
 
 ## SECTION 13 — DATA STORAGE
 
-- `uploads/`: Temporary storage for uploaded raw files. Files are deleted from here immediately after the text has been successfully extracted or if an error occurs.
-- `metadata/`: Directory storing `documents.json`.
-- `documents.json`: Lightweight local JSON database storing document statuses, chunk counts, upload timestamps, and IDs. Serves as the source of truth for the frontend repository view.
-- `chroma_db/`: Directory managed exclusively by ChromaDB. It stores SQLite databases and persistent vector index files mapping to the document chunks.
+- `uploads/`: Temporary raw upload storage.
+- `metadata/`: `documents.json` and document-processing metadata.
+- `chroma_db/`: Persistent ChromaDB vector data.
+
+The Milestone 2 agents do not change the document-ingestion storage model.
 
 ---
 
 ## SECTION 14 — CONFIGURATION
 
-`app/core/config.py` acts as the single source of truth for application constants:
-- `UPLOAD_FOLDER`: Path to the temporary file directory.
-- `METADATA_FOLDER`: Path to the JSON metadata directory.
-- `DOCUMENTS_FILE`: Absolute path to `documents.json`.
-- `CHROMA_DB_PATH`: Absolute path to the ChromaDB storage directory.
-- `ALLOWED_EXTENSIONS`: Set containing `{.pdf, .docx, .txt, .csv}`.
-- `MAX_FILE_SIZE`: Limit set to 10 MB (10 * 1024 * 1024 bytes).
-- `CORS_ALLOW_ORIGINS`: List of frontend ports permitted to make API requests (e.g. localhost:5173).
+`app/core/config.py` remains the source of application paths and file-processing constants.
+
+Milestone 2 additionally uses:
+
+```text
+backend/.env
+```
+
+with:
+
+```env
+GROQ_API_KEY=<your-key>
+GROQ_MODEL=<configured-model>
+```
+
+`app/core/llm.py` loads these variables and creates the shared LangChain `ChatGroq` model instance. Query Understanding and Response Generation reuse the centralized configuration. Retrieval does not require an LLM API key.
+
+**Never commit `.env` or real API keys to Git.**
 
 ---
 
 ## SECTION 15 — MODELS
 
-### `request_models.py`
-Defines `QueryRequest` inheriting from Pydantic `BaseModel`. Specifies that a query requires a string `query` and an optional integer `k` defaulting to 3.
-### `response_models.py`
-Currently empty, ready for future strongly-typed response schemas.
+### Query Request
+`request_models.py` defines the API input model:
 
-### Why Request Validation is Separated:
-Separating Pydantic models from routers keeps the router files clean and ensures that data schemas can be reused across different services or routers if needed. It also allows FastAPI to automatically generate interactive Swagger API documentation.
+```text
+query: string
+k: integer = 3
+```
+
+### Query Understanding Result
+The Query Understanding Agent returns:
+
+```text
+original_query
+normalized_query
+search_query
+query_type
+entities
+keywords
+exact_terms
+```
+
+### Retrieval Result
+The Retrieval Agent returns ranked chunks containing fields such as:
+
+```text
+id
+content
+metadata
+distance
+matched_terms
+semantic_score
+keyword_score
+lexical_score
+synergy_score
+evidence_score
+relevance_score
+```
+
+### Response Generation Result
+The Response Generation Agent returns:
+
+```text
+answer
+sources
+confidence
+```
+
+Each source may preserve:
+
+```text
+source
+reference
+chunk_id
+relevance_score
+metadata
+```
 
 ---
 
 ## SECTION 16 — API DOCUMENTATION
 
-| Method | Route | Purpose | Request Body | Response | Status Codes |
-|---|---|---|---|---|---|
-| GET | `/` | Health Check | None | `{"status": "...", "message": "..."}` | 200 |
-| GET | `/documents` | Get all documents | None | `[{id, name, status, ...}]` | 200 |
-| DELETE | `/documents/{id}` | Delete document | None | `{"status": "...", "id": "..."}` | 200, 404 |
-| POST | `/query` | Search vector DB | `{"query": "str", "k": int}` | `{"success": true, "results": [...]}` | 200, 400 |
-| POST | `/upload` | Upload document | `multipart/form-data` | `{"status": "accepted", "jobId": "..."}` | 202, 400 |
-| GET | `/upload/status/{id}` | Check job status | None | `{"status": "...", "progress": int}` | 200, 404 |
+| Method | Route | Purpose | Request Body | Response |
+|---|---|---|---|---|
+| GET | `/` | Health Check | None | Health JSON |
+| GET | `/documents` | List indexed documents | None | Document list |
+| DELETE | `/documents/{id}` | Delete indexed document | None | Deletion JSON |
+| POST | `/query` | Run Milestone 2 workflow | `{"query":"...","k":3}` | Query understanding + route + retrieval + response |
+| POST | `/upload` | Upload document | Multipart form-data | Accepted job response |
+| GET | `/upload/status/{id}` | Check upload status | None | Job status |
+
+### `/query` response
+The successful response contains:
+
+```text
+success
+query
+query_understanding
+route
+route_reason
+retrieval
+response
+```
+
+The `response` object contains the grounded answer, source citations and confidence indicator.
 
 ---
 
@@ -478,113 +644,248 @@ Separating Pydantic models from routers keeps the router files clean and ensures
 ```mermaid
 graph TD
     A[Upload Endpoint] --> B[Validation]
-    B -->|Passed| C[Save Temp File]
-    C --> D[Background Task: Extraction]
-    D --> E[Langchain Chunking]
+    B --> C[Save Temporary File]
+    C --> D[Extraction]
+    D --> E[Chunking]
     E --> F[SentenceTransformer Embedding]
-    F --> G[Store in ChromaDB]
-    G --> H[Update Metadata JSON]
-    H --> I[Delete Temp File]
-    I --> J[Status: Completed]
+    F --> G[ChromaDB]
+    G --> H[Metadata JSON]
+    H --> I[Processing Completed]
 ```
 
 ---
 
-## SECTION 18 — QUERY LIFECYCLE
+## SECTION 18 — MILESTONE 2 QUERY LIFECYCLE
 
 ```mermaid
 graph TD
-    A[User Query Endpoint] --> B[Generate Query Vector Embedding]
-    B --> C[Vector Search in ChromaDB]
-    A --> D[Extract Exact Keywords/Identifiers]
-    D --> E[Exact Match Search in ChromaDB]
-    C --> F[Merge Results & Remove Duplicates]
-    E --> F
-    F --> G[Rerank via Relevance Scoring]
-    G --> H[Return Top K Results to UI]
+    A[User Query] --> B[Query Understanding Agent]
+    B --> C[Structured QueryUnderstandingResult]
+    C --> D[Query Router]
+    D --> E[Retrieval Agent]
+    E --> F[Semantic Search]
+    E --> G[Optional Exact Search]
+    F --> H[Merge + Rerank]
+    G --> H
+    H --> I[Low-Confidence Filtering]
+    I --> J[Top-K Context]
+    J --> K[Response Generation Agent]
+    K --> L[Grounded Answer + Sources + Confidence]
 ```
 
 ---
 
-## SECTION 19 — ERROR HANDLING
+## SECTION 19 — VALIDATION / TESTING
 
-- **Upload Validation:** `upload_service.py` verifies file extensions and sizes before saving the file, returning clear JSON error messages.
-- **Processing Failures:** Wrapped in `try/except` blocks. If extraction or embedding fails, the job state in `metadata_service` is updated to `failed` with the error message, and the temporary file is deleted in a `finally` block.
-- **Embedding Failures:** If the model fails to load or arrays are empty, explicit `ValueError` exceptions are raised and caught by the background task handler.
-- **Query Validation:** FastAPI Pydantic automatically throws 422 if input schema is bad. The router explicitly checks if `k < 1` and throws a 400 `HTTPException`.
-- **HTTP Exceptions:** 404s are utilized for missing documents during deletion or missing jobs during status polling.
-- **Frontend Error Messages:** `api.js` normalizes fetch responses, checking `!response.ok` and throwing errors. Components catch these, updating local `errorMessage` states which render red error boxes in the UI.
+### Query Understanding
+Validated with factual, procedural, comparative, ambiguous classification scenarios and structured outputs containing query type, keywords and exact terms.
+
+### Retrieval Agent
+Validated with:
+- identifier/attribute queries such as `What is the email of Name_1?`
+- unsupported queries such as a leave-policy question against a dataset containing no leave policy
+- generic PDF questions such as `What does the Retrieval Agent do?`
+
+The generic PDF test demonstrated retrieval with:
+
+```text
+exact_terms = []
+exact_candidates = 0
+semantic_candidates > 0
+```
+
+and relevant PDF chunks were returned.
+
+### Response Generation
+Standalone validation confirmed:
+- grounded answer generation
+- source citation extraction
+- real chunk IDs and metadata
+- retrieval-aware confidence
+
+### End-to-End LangGraph
+Validated workflow execution:
+
+```text
+Query Understanding
+    → Router
+    → Retrieval
+    → Response Generation
+```
+
+The workflow produced a final grounded answer with sources and confidence.
 
 ---
 
-## SECTION 20 — DEVELOPMENT WORKFLOW
+## SECTION 20 — ERROR HANDLING
 
-- **New endpoint:** Add a new route in an existing file inside `app/api/` or create a new router file and include it in `main.py` via `app.include_router()`.
-- **New service:** Create a new Python file in `app/services/` encapsulating the business logic. Import and call it from your router.
-- **New router:** Create `app/api/new_router.py`, instantiate `APIRouter()`, add endpoints, and register in `main.py`.
-- **New model:** Add Pydantic classes to `app/models/request_models.py` or `response_models.py`.
-- **New component:** Add a `.jsx` file to `Frontend/src/components/`, export it, and import it into a page.
-- **New page:** Add a `.jsx` file to `Frontend/src/pages/`, and conditionally render it in `App.jsx` based on tab state.
-- **New API integration:** Add a new async function wrapper in `Frontend/src/services/api.js`.
-
----
-
-## SECTION 21 — CODING STANDARDS
-
-- **main.py is lightweight:** It only configures the app and registers routers, keeping the entry point clean.
-- **Routers contain only endpoints:** Ensures clear separation of HTTP mechanics (request/response, status codes) from business logic.
-- **Services contain business logic:** Ensures testability and reusability of logic across different endpoints or CLI tasks.
-- **config.py centralizes constants:** Avoids magic strings/numbers scattered across the app. Makes environment changes simple.
-- **`__init__.py` exists:** Marks directories as Python packages, allowing absolute imports like `from app.api.xyz import xyz`.
-- **Comments are short:** Focus on "why" rather than "what", since the code is structured cleanly.
-- **Naming conventions:** Python uses `snake_case` for variables/functions and `PascalCase` for classes. React uses `PascalCase` for components and `camelCase` for variables/functions.
-- **Folder conventions:** Pluralized layer names (e.g., `services`, `models`). Component files exactly match their export name.
-- **Import conventions:** Absolute imports in Python starting with `app.`. Relative imports in React.
+- Query validation is handled by FastAPI/Pydantic and explicit `k >= 1` checks.
+- Query Understanding errors are captured by the workflow state.
+- Retrieval errors are captured by the workflow state.
+- Response Generation handles empty retrieval context by returning an insufficient-information response with zero confidence.
+- The API converts workflow failures into appropriate HTTP errors.
+- The system avoids returning unsupported retrieved context when low-confidence filtering removes all candidates.
 
 ---
 
-## SECTION 22 — SETUP INSTRUCTIONS
+## SECTION 21 — DEVELOPMENT WORKFLOW
+
+### New agent
+Create a new package under `app/agents/` with its own implementation and schemas.
+
+### New orchestration behavior
+Modify `app/orchestration/query_router.py` or `workflow.py` rather than adding agent logic to FastAPI routers.
+
+### New API endpoint
+Add a router under `app/api/` and keep it focused on HTTP concerns.
+
+### New LLM configuration
+Update `app/core/llm.py` / `.env` rather than initializing provider credentials inside individual agents.
+
+### New frontend API integration
+Add the API wrapper to `Frontend/src/services/api.js`.
+
+---
+
+## SECTION 22 — CODING STANDARDS
+
+- FastAPI routers remain thin.
+- `workflow.py` contains orchestration, not agent business logic.
+- `query_router.py` contains deterministic routing.
+- Each agent owns its own domain logic.
+- `app/core/llm.py` owns shared LLM initialization.
+- Absolute Python imports begin with `app.`.
+- Python uses `snake_case`; classes use `PascalCase`.
+- `__init__.py` marks Python packages.
+- Secrets are stored in `.env` and never committed.
+
+---
+
+## SECTION 23 — SETUP INSTRUCTIONS
 
 ### Backend
-1. **Create virtual environment:** `python -m venv .venv`
-2. **Activate environment:** `source .venv/bin/activate` (Mac/Linux) or `.venv\Scripts\activate` (Windows).
-3. **Install requirements:** `pip install -r backend/requirements.txt`
-4. **Run FastAPI:** `cd backend` then `uvicorn app.main:app --reload` (Runs on http://localhost:8000)
+
+1. Create the environment:
+
+```bash
+python -m venv .venv
+```
+
+2. Activate it:
+
+Windows:
+
+```cmd
+.venv\Scripts\activate
+```
+
+macOS/Linux:
+
+```bash
+source .venv/bin/activate
+```
+
+3. Install dependencies:
+
+```bash
+pip install -r backend/requirements.txt
+```
+
+4. Create `backend/.env`:
+
+```env
+GROQ_API_KEY=<your-key>
+GROQ_MODEL=<configured-model>
+```
+
+5. Start FastAPI:
+
+```bash
+cd backend
+uvicorn app.main:app --reload
+```
+
+Backend:
+
+```text
+http://localhost:8000
+```
+
+Swagger:
+
+```text
+http://localhost:8000/docs
+```
 
 ### Frontend
-1. **Navigate to directory:** `cd Frontend`
-2. **Install dependencies:** `npm install`
-3. **Run development server:** `npm run dev` (Runs on http://localhost:5173)
 
-**Environment Variables:** By default, the frontend looks for the backend at `http://localhost:8000`. You can override this by creating a `.env` file in the `Frontend/` folder containing `VITE_API_BASE_URL="http://your-url"`.
+```bash
+cd Frontend
+npm install
+npm run dev
+```
 
----
+Frontend:
 
-## SECTION 23 — FUTURE IMPROVEMENTS
-
-Based on the current implementation, realistic future improvements include:
-- **Authentication (JWT):** Adding secure user login to protect the API and separate knowledge bases per user.
-- **LLM-generated Grounded Answers:** Currently, the system returns raw chunks. Integrating an LLM (like OpenAI or local Llama) to synthesize the chunks into conversational prose.
-- **Conversation Memory:** Storing past chat histories to allow follow-up questions contextually.
-- **Caching:** Implementing Redis to cache frequent queries and their vector matches to speed up retrieval.
-- **Docker:** Creating `Dockerfile` and `docker-compose.yml` for simplified deployment of both frontend and backend.
-- **Logging:** Implementing Python's `logging` module to replace standard `print()` statements for production monitoring.
-- **Unit Testing:** Adding `pytest` for the backend and `vitest` for the frontend.
-- **Role-based Access:** Differentiating between standard users (chat only) and admins (uploading/deleting documents).
+```text
+http://localhost:5173
+```
 
 ---
 
-## SECTION 24 — PROJECT SUMMARY
+## SECTION 24 — FUTURE IMPROVEMENTS
+
+The following are future work rather than required for the currently validated Milestone 2 path:
+
+- **Clarification Agent:** Add a dedicated path for ambiguous queries.
+- **Conversation Memory:** Maintain multi-turn context across follow-up questions.
+- **Advanced Routing:** Route complex queries to specialized resolution paths.
+- **Improved Confidence Calibration:** Calibrate response confidence using larger validation sets.
+- **Retrieval Optimization:** Evaluate larger candidate pools, learned rerankers and domain-diverse benchmarks.
+- **Caching:** Cache frequent queries and retrieval results.
+- **Authentication:** Separate knowledge bases by user/account.
+- **Dockerization:** Add reproducible containerized deployment.
+- **Logging & Monitoring:** Replace ad-hoc prints with structured logging.
+- **Automated Testing:** Add pytest/vitest coverage for agents, workflow and API.
+
+---
+
+## SECTION 25 — PROJECT SUMMARY
 
 ### Architecture
-The project strictly adheres to a decoupled client-server architecture, communicating exclusively over REST API. 
-### Folder Organization
-The backend implements Clean Architecture principles by isolating HTTP routers, business services, configuration, and data persistence models. The frontend is cleanly divided into pages, components, and services.
-### Frontend
-A responsive, modern React SPA built with Vite, emphasizing real-time feedback for long-running document processing tasks via polling, and providing a clean UI for inspecting vector search results.
+The platform uses a decoupled React + FastAPI architecture with a LangGraph orchestration layer for Milestone 2.
+
 ### Backend
-A fast, asynchronous Python API leveraging FastAPI's BackgroundTasks to handle intensive text extraction and embedding without blocking the main event loop.
-### RAG Pipeline
-Utilizes industry-standard libraries (SentenceTransformers, LangChain, ChromaDB) to construct a robust local semantic search engine capable of parsing multiple complex document formats.
-### Scalability & Maintainability
-Because business logic is stripped out of the API routes and placed into service modules, swapping out the database or the embedding model in the future requires minimal refactoring. The separation of concerns ensures that a new intern or developer can easily understand where specific logic resides.
+The backend now separates:
+
+```text
+HTTP API
+    ↓
+LangGraph orchestration
+    ↓
+Agents
+    ↓
+RAG infrastructure
+```
+
+### Milestone 2
+The currently validated Milestone 2 flow is:
+
+```text
+Query Understanding
+    ↓
+Query Routing
+    ↓
+Retrieval
+    ↓
+Response Generation
+```
+
+### Retrieval
+The system retains the Milestone 1 semantic/ChromaDB infrastructure while adding query-aware reranking, low-confidence filtering and final context selection.
+
+### Response Generation
+The system generates grounded answers from retrieved context and exposes source citations and a confidence indicator.
+
+### Maintainability
+Agent responsibilities, orchestration, API concerns and RAG infrastructure remain separated, allowing each layer to be developed and tested independently.
