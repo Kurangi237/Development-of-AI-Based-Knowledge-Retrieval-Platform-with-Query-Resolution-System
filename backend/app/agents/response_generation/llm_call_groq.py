@@ -2,15 +2,7 @@
 Groq LLM handler for the Response Generation Agent.
 
 Uses the same centralized LLM configuration as the Query Understanding
-Agent:
-
-    backend/.env
-        ↓
-    app/core/llm.py
-        ↓
-    get_llm()
-        ↓
-    ChatGroq
+Agent.
 """
 
 from __future__ import annotations
@@ -32,20 +24,6 @@ class GroqHandler:
     ) -> str:
         """
         Generate a response from the shared LLM.
-
-        Args:
-            prompt:
-                Grounded response-generation prompt.
-
-        Returns:
-            Generated text.
-
-        Raises:
-            ValueError:
-                If the prompt is empty.
-
-            RuntimeError:
-                If the LLM request fails or returns empty content.
         """
 
         if not isinstance(
@@ -64,6 +42,7 @@ class GroqHandler:
             )
 
         try:
+
             response = self.llm.invoke(
                 prompt
             )
