@@ -5,15 +5,39 @@ The prompt is deliberately domain-agnostic.
 
 It accepts retrieved chunks from the Retrieval Agent and instructs
 the LLM to:
+
 1. Answer only from the supplied context.
 2. Avoid unsupported claims.
 3. Clearly state when the context is insufficient.
-4. Cite the supplied chunks using [1], [2], etc.
+4. Cite supplied chunks using [1], [2], etc.
 """
 
 from __future__ import annotations
 
 from typing import Any
+
+
+def _get_chunk_id(
+    chunk: dict[str, Any],
+) -> str | None:
+    """
+    Return the canonical chunk ID.
+
+    `chunk_id` is the current Retrieval Agent contract.
+    `id` is retained only as a backward-compatible fallback.
+    """
+
+    chunk_id = chunk.get("chunk_id")
+
+    if chunk_id:
+        return str(chunk_id)
+
+    legacy_id = chunk.get("id")
+
+    if legacy_id:
+        return str(legacy_id)
+
+    return None
 
 
 def format_chunks(
@@ -22,10 +46,10 @@ def format_chunks(
     """
     Format retrieved chunks into numbered source blocks.
 
-    Retrieval Agent result shape supported:
+    Supported Retrieval Agent result shape:
 
     {
-        "id": ...,
+        "chunk_id": ...,
         "content": ...,
         "metadata": ...,
         "distance": ...,
@@ -33,8 +57,8 @@ def format_chunks(
         "relevance_score": ...
     }
 
-    Extra retrieval fields are not exposed as instructions to the
-    model, but useful source metadata is included for citation.
+    Extra retrieval fields are not exposed as instructions to
+    the model, but useful source metadata is included.
     """
 
     if not chunks:
@@ -46,6 +70,7 @@ def format_chunks(
         chunks,
         start=1,
     ):
+
         if isinstance(chunk, dict):
 
             content = str(
@@ -58,8 +83,8 @@ def format_chunks(
             if not content:
                 continue
 
-            chunk_id = chunk.get(
-                "id"
+            chunk_id = _get_chunk_id(
+                chunk
             )
 
             metadata = chunk.get(
@@ -95,7 +120,7 @@ def format_chunks(
 
             if chunk_id:
                 source_parts.append(
-                    f"id={chunk_id}"
+                    f"chunk_id={chunk_id}"
                 )
 
             source_label = (
@@ -157,14 +182,15 @@ Rules:
    contain enough information.
 4. When making a factual claim from the context, cite the corresponding
    source using [1], [2], [3], etc.
-5. Use only citation numbers that actually exist in the provided context.
-6. Do not create or guess citations.
+5. Use ONLY citation numbers that actually exist in the retrieved context.
+6. Never invent or guess a citation number.
 7. When multiple sources provide relevant evidence, cite all relevant
    sources.
 8. Prefer a concise, direct answer.
-9. If the retrieved context contains conflicting information, explicitly
-   mention the conflict and cite the conflicting sources instead of
-   choosing one without evidence.
+9. Keep citation formatting exactly like [1], [2], [3].
+10. Do not use Unicode citation brackets such as 【1】.
+11. If the retrieved context contains conflicting information, explicitly
+    mention the conflict and cite the conflicting sources.
 
 Retrieved Context:
 ------------------
@@ -184,7 +210,7 @@ if __name__ == "__main__":
 
     sample_chunks = [
         {
-            "id": "chunk_001",
+            "chunk_id": "chunk_001",
             "content": (
                 "Employees are entitled to "
                 "12 days of paid leave per year."
@@ -196,7 +222,7 @@ if __name__ == "__main__":
             "relevance_score": 0.91,
         },
         {
-            "id": "chunk_002",
+            "chunk_id": "chunk_002",
             "content": (
                 "Sick leave requests longer than "
                 "2 days require a medical certificate."
@@ -210,7 +236,9 @@ if __name__ == "__main__":
     ]
 
     prompt = build_prompt(
-        question="How many leave days do employees get?",
+        question=(
+            "How many leave days do employees get?"
+        ),
         chunks=sample_chunks,
     )
 

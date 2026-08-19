@@ -113,96 +113,114 @@ The frontend remains a React SPA built with Vite. The backend is a FastAPI appli
 
 ```text
 AI-Based Knowledge Retrieval Platform with Query Resolution System/
-├── backend/
+│
+├── backend/                              # FastAPI + Milestone 1/2 backend
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py
-│   │   ├── api/
+│   │   ├── main.py                       # FastAPI application entry point
+│   │   │
+│   │   ├── api/                          # HTTP/API routers
 │   │   │   ├── __init__.py
-│   │   │   ├── documents.py
-│   │   │   ├── health.py
-│   │   │   ├── query.py
-│   │   │   └── upload.py
-│   │   ├── core/
+│   │   │   ├── documents.py              # Document management endpoints
+│   │   │   ├── health.py                 # Health check endpoint
+│   │   │   ├── query.py                  # Milestone 2 /query endpoint
+│   │   │   └── upload.py                 # Upload and status endpoints
+│   │   │
+│   │   ├── core/                         # Application configuration
 │   │   │   ├── __init__.py
-│   │   │   ├── config.py
-│   │   │   └── llm.py
-│   │   ├── models/
+│   │   │   ├── config.py                 # Paths and application settings
+│   │   │   └── llm.py                    # Centralized Groq LLM setup
+│   │   │
+│   │   ├── models/                       # API/data models
 │   │   │   ├── __init__.py
-│   │   │   ├── request_models.py
-│   │   │   └── response_models.py
-│   │   ├── rag/
+│   │   │   ├── request_models.py          # Request validation models
+│   │   │   └── response_models.py         # Response models
+│   │   │
+│   │   ├── rag/                          # Milestone 1 RAG infrastructure
 │   │   │   ├── __init__.py
-│   │   │   ├── chromadb_service.py
-│   │   │   ├── chunking.py
-│   │   │   ├── embedding.py
-│   │   │   └── extractor.py
-│   │   ├── services/
+│   │   │   ├── chromadb_service.py       # ChromaDB operations
+│   │   │   ├── chunking.py               # Text chunking
+│   │   │   ├── embedding.py              # Embedding generation
+│   │   │   └── extractor.py              # Document text extraction
+│   │   │
+│   │   ├── services/                     # Backend business services
 │   │   │   ├── __init__.py
-│   │   │   ├── document_service.py
-│   │   │   ├── metadata_service.py
-│   │   │   ├── query_service.py       # Milestone 1 baseline retained
-│   │   │   └── upload_service.py
-│   │   ├── agents/
+│   │   │   ├── document_service.py       # Document management logic
+│   │   │   ├── metadata_service.py       # Metadata/status persistence
+│   │   │   ├── query_service.py           # Milestone 1 baseline retained
+│   │   │   └── upload_service.py         # Upload processing pipeline
+│   │   │
+│   │   ├── agents/                       # Milestone 2 agents
 │   │   │   ├── __init__.py
-│   │   │   ├── query_understanding/
+│   │   │   │
+│   │   │   ├── query_understanding/      # Query analysis and classification
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── agent.py
 │   │   │   │   ├── classifier.py
 │   │   │   │   ├── normalizer.py
 │   │   │   │   ├── extractor.py
 │   │   │   │   └── schemas.py
-│   │   │   ├── retrieval/
+│   │   │   │
+│   │   │   ├── retrieval/                # Search, ranking and filtering
 │   │   │   │   ├── __init__.py
 │   │   │   │   ├── agent.py
 │   │   │   │   ├── semantic_search.py
 │   │   │   │   ├── exact_search.py
 │   │   │   │   └── reranker.py
-│   │   │   └── response_generation/
+│   │   │   │
+│   │   │   └── response_generation/      # Grounded answer generation
 │   │   │       ├── __init__.py
 │   │   │       ├── agent.py
 │   │   │       ├── prompt_builder.py
 │   │   │       ├── llm_call_groq.py
 │   │   │       └── schemas.py
-│   │   ├── orchestration/
+│   │   │
+│   │   ├── orchestration/                # Milestone 2 workflow orchestration
 │   │   │   ├── __init__.py
-│   │   │   ├── query_router.py
-│   │   │   └── workflow.py
-│   │   └── utils/
+│   │   │   ├── query_router.py            # Deterministic query routing
+│   │   │   └── workflow.py                # LangGraph workflow
+│   │   │
+│   │   └── utils/                        # Shared utility package
 │   │       └── __init__.py
-│   ├── chroma_db/
-│   ├── metadata/
-│   ├── uploads/
-│   ├── .env                 # local only; never commit secrets
-│   ├── requirements.txt
-│   └── test_retrieval_agent.py
-├── Frontend/
-│   ├── public/
+│   │
+│   ├── chroma_db/                        # Local ChromaDB data (ignored)
+│   ├── metadata/                         # Local metadata/state (ignored)
+│   ├── uploads/                          # Local uploaded files (ignored)
+│   ├── .env                              # Local secrets/config (ignored)
+│   ├── requirements.txt                  # Python dependencies
+│   └── test_retrieval_agent.py           # Retrieval integration test
+│
+├── frontend/                             # React + Vite frontend
+│   ├── public/                           # Static public assets
 │   ├── src/
-│   │   ├── assets/
-│   │   ├── components/
+│   │   ├── assets/                       # Frontend assets
+│   │   ├── components/                   # Reusable UI components
 │   │   │   ├── ChatBubble.jsx
 │   │   │   ├── FileUploader.jsx
 │   │   │   ├── Footer.jsx
 │   │   │   └── Sidebar.jsx
-│   │   ├── pages/
-│   │   │   ├── ChatPage.jsx
-│   │   │   └── UploadPage.jsx
-│   │   ├── services/
+│   │   ├── pages/                        # Application pages
+│   │   │   ├── ChatPage.jsx              # Chat + Context Inspector
+│   │   │   └── UploadPage.jsx             # Document upload UI
+│   │   ├── services/                     # Frontend API layer
 │   │   │   └── api.js
 │   │   ├── App.css
 │   │   ├── App.jsx
 │   │   ├── index.css
 │   │   └── main.jsx
+│   ├── .env                              # Local frontend API URL
 │   ├── .gitignore
 │   ├── package-lock.json
 │   ├── package.json
-│   ├── vite.config.js
-│   └── workflow.md
+│   └── vite.config.js
+│
 ├── .gitignore
-├── PROJECT_GUIDE.md
-└── README.md
+├── PROJECT_GUIDE.md                      # Detailed technical documentation
+└── README.md                             # Project overview and setup
 ```
+
+### Integration Boundary
+The repository contains one authoritative backend under `backend/`. The frontend is under `frontend/` and communicates with the backend only through the documented REST API. The old standalone frontend-side backend copy from the frontend team's source package is not part of the final integrated architecture.
 
 ### Orchestration Design Decision
 The Milestone 2 orchestration layer intentionally contains only:
@@ -259,6 +277,8 @@ The existing React architecture remains valid for Milestone 2. The primary backe
 - `api.js`: Centralizes REST calls.
 
 ### Milestone 2 Integration Note
+The integrated frontend communicates only with the FastAPI backend. It does not call Groq, ChromaDB, embeddings, or the agent modules directly.
+
 The frontend should consume the `/query` response fields:
 
 ```text
@@ -272,10 +292,63 @@ and may additionally use:
 ```text
 query_understanding
 route
+route_reason
 retrieval.results
 ```
 
-for debugging or a developer-facing context inspector. No frontend redesign is required for the backend Milestone 2 orchestration itself.
+for debugging, transparency, or the developer-facing Context Inspector.
+
+### Frontend-to-Backend Query Flow
+
+```text
+Frontend
+    ↓
+frontend/src/services/api.js
+    ↓
+POST /query
+    ↓
+FastAPI
+    ↓
+LangGraph Workflow
+    ↓
+Query Understanding
+    ↓
+Query Router
+    ↓
+Retrieval Agent
+    ↓
+Response Generation Agent
+    ↓
+Final JSON response
+    ↓
+ChatPage.jsx
+    ├── response.answer
+    ├── response.sources
+    ├── response.confidence
+    └── retrieval.results
+             ↓
+      Context Inspector
+```
+
+### Source-to-Context Mapping
+
+`response.sources[*].chunk_id` is matched against `retrieval.results[*].chunk_id` to open the exact retrieved chunk in the Context Inspector. Filename matching is retained only as a fallback when a source does not provide a `chunk_id`.
+
+### Frontend Environment
+
+The frontend uses a separate local environment file:
+
+```text
+frontend/.env
+```
+
+Example:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+The frontend must never contain `GROQ_API_KEY` or other backend-only secrets.
 
 ---
 
@@ -574,10 +647,10 @@ exact_terms
 ```
 
 ### Retrieval Result
-The Retrieval Agent returns ranked chunks containing fields such as:
+The Retrieval Agent returns ranked chunks using `chunk_id` as the canonical public identifier for each retrieved chunk.
 
 ```text
-id
+chunk_id
 content
 metadata
 distance
@@ -589,6 +662,10 @@ synergy_score
 evidence_score
 relevance_score
 ```
+
+`chunk_id` identifies the specific retrieved chunk. `document_id` remains the identifier for the source document and is preserved inside `metadata`.
+
+The same `chunk_id` is propagated into Response Generation source citations so the frontend can map a citation to the exact retrieved chunk shown in the Context Inspector.
 
 ### Response Generation Result
 The Response Generation Agent returns:
@@ -715,6 +792,21 @@ Query Understanding
 
 The workflow produced a final grounded answer with sources and confidence.
 
+### Frontend + Backend Integration
+
+Validated end-to-end through the React frontend:
+
+- Query submission from `ChatPage.jsx`.
+- FastAPI `/query` invocation through `frontend/src/services/api.js`.
+- LangGraph workflow execution.
+- Generated answer displayed from `response.answer`.
+- Source citations displayed from `response.sources`.
+- Confidence displayed from `response.confidence`.
+- Retrieved chunks displayed through `retrieval.results`.
+- `chunk_id` preserved between retrieval results and response sources.
+- Context Inspector opens the corresponding retrieved chunk.
+- Relevance and semantic scores are visible in the inspector.
+
 ---
 
 ## SECTION 20 — ERROR HANDLING
@@ -743,7 +835,7 @@ Add a router under `app/api/` and keep it focused on HTTP concerns.
 Update `app/core/llm.py` / `.env` rather than initializing provider credentials inside individual agents.
 
 ### New frontend API integration
-Add the API wrapper to `Frontend/src/services/api.js`.
+Add the API wrapper to `frontend/src/services/api.js`.
 
 ---
 
@@ -819,8 +911,22 @@ http://localhost:8000/docs
 
 ### Frontend
 
+Create the local frontend environment file:
+
+```text
+frontend/.env
+```
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Do not place backend secrets such as `GROQ_API_KEY` in the frontend environment.
+
+Install and start the frontend:
+
 ```bash
-cd Frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -887,5 +993,8 @@ The system retains the Milestone 1 semantic/ChromaDB infrastructure while adding
 ### Response Generation
 The system generates grounded answers from retrieved context and exposes source citations and a confidence indicator.
 
+### Frontend Integration
+The validated demo combines the existing Milestone 1 RAG infrastructure, the Milestone 2 multi-agent workflow, and the updated React frontend through the FastAPI REST API. Source citations and retrieval context use a shared `chunk_id` contract for reliable Context Inspector mapping.
+
 ### Maintainability
-Agent responsibilities, orchestration, API concerns and RAG infrastructure remain separated, allowing each layer to be developed and tested independently.
+Agent responsibilities, orchestration, API concerns, frontend responsibilities and RAG infrastructure remain separated, allowing each layer to be developed and tested independently.

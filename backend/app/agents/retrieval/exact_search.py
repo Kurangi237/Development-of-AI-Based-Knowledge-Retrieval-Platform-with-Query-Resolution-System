@@ -49,7 +49,7 @@ def search_exact(exact_terms: list[str]) -> list[dict[str, Any]]:
         A list of retrieval results using the common structure:
 
         {
-            "id": str,
+            "chunk_id": str,
             "content": str,
             "metadata": dict,
             "distance": float | None,
@@ -113,7 +113,7 @@ def search_exact(exact_terms: list[str]) -> list[dict[str, Any]]:
 
         normalized_results.append(
             {
-                "id": result.get("id", ""),
+                "chunk_id": result.get("id", ""),
                 "content": result.get("content", ""),
                 "metadata": result.get("metadata", {}),
                 "distance": result.get("distance"),
@@ -154,7 +154,7 @@ if __name__ == "__main__":
         for index, result in enumerate(results, start=1):
             print(f"\nResult {index}")
             print("-" * 40)
-            print("ID:", result["id"])
+            print("Chunk ID:", result["chunk_id"])
             print("Content:", result["content"])
             print("Metadata:", result["metadata"])
             print("Distance:", result["distance"])

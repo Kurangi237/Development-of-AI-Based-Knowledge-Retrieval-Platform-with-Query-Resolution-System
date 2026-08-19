@@ -51,7 +51,7 @@ def build_semantic_results(
     Expected output structure:
 
     {
-        "id": str,
+        "chunk_id": str,
         "content": str,
         "metadata": dict,
         "distance": float | None,
@@ -114,7 +114,7 @@ def build_semantic_results(
 
         results.append(
             {
-                "id": str(result_id),
+                "chunk_id": str(result_id),
                 "content": content,
                 "metadata": metadata or {},
                 "distance": distance,
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         ):
             print(f"\nResult {index}")
             print("-" * 40)
-            print("ID:", result["id"])
+            print("Chunk ID:", result["chunk_id"])
             print("Content:", result["content"])
             print("Metadata:", result["metadata"])
             print("Distance:", result["distance"])

@@ -9,7 +9,17 @@ router = APIRouter(
 )
 
 
-@router.post("/query")
+@router.post(
+    "/query",
+    summary="Query Documents",
+    description=(
+        "Run the complete Milestone 2 LangGraph workflow.\n\n"
+        "Flow: "
+        "FastAPI → LangGraph Workflow → Query Understanding → "
+        "Query Routing → Retrieval → Response Generation → "
+        "Final Response"
+    ),
+)
 def query_documents(
     request: QueryRequest,
 ):
@@ -18,17 +28,17 @@ def query_documents(
 
     Flow:
         FastAPI
-            ↓
+        ->
         LangGraph Workflow
-            ↓
+        ->
         Query Understanding
-            ↓
+        ->
         Query Routing
-            ↓
+        ->
         Retrieval
-            ↓
+        ->
         Response Generation
-            ↓
+        ->
         Final Response
     """
 
@@ -84,26 +94,11 @@ def query_documents(
         return {
             "success": True,
             "query": request.query,
-
-            "query_understanding": (
-                query_understanding
-            ),
-
-            "route": result.get(
-                "route"
-            ),
-
-            "route_reason": result.get(
-                "route_reason"
-            ),
-
-            "retrieval": result.get(
-                "retrieval_result"
-            ),
-
-            "response": result.get(
-                "response"
-            ),
+            "query_understanding": query_understanding,
+            "route": result.get("route"),
+            "route_reason": result.get("route_reason"),
+            "retrieval": result.get("retrieval_result"),
+            "response": result.get("response"),
         }
 
     except HTTPException:

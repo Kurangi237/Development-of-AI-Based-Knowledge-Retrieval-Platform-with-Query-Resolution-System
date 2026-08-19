@@ -29,11 +29,25 @@ function App() {
 
       {/* Main Content Pane */}
       <main className="main-content">
-        {activeTab === 'upload' ? (
-          <UploadPage onStartChat={() => setActiveTab('chat')} />
-        ) : (
+        <div
+          style={{
+            display: activeTab === 'upload' ? 'block' : 'none',
+            height: '100%',
+          }}
+        >
+          <UploadPage
+            onStartChat={() => setActiveTab('chat')}
+          />
+        </div>
+
+        <div
+          style={{
+            display: activeTab === 'chat' ? 'block' : 'none',
+            height: '100%',
+          }}
+        >
           <ChatPage />
-        )}
+        </div>
       </main>
     </div>
   );

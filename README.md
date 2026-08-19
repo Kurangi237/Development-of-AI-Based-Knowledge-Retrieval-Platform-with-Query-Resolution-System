@@ -57,6 +57,8 @@ An AI-powered Retrieval-Augmented Generation (RAG) platform that enables users t
 
 ## Project Structure
 
+The project contains a single authoritative backend at the repository root. Do not place or maintain a second backend copy inside `frontend/`.
+
 ```text
 AI-Based Knowledge Retrieval Platform with Query Resolution System/
 ├── backend/
@@ -79,7 +81,7 @@ AI-Based Knowledge Retrieval Platform with Query Resolution System/
 │   ├── metadata/
 │   ├── uploads/
 │   └── requirements.txt
-├── Frontend/
+├── frontend/
 │   ├── public/
 │   ├── src/
 │   ├── package.json
@@ -107,7 +109,14 @@ Response Generation Agent
     ├── Grounded Answer
     ├── Source Citations
     └── Confidence
+    ↓
+FastAPI JSON Response
+    ↓
+React Frontend
+    └── Context Inspector
 ```
+
+The integrated frontend uses `response.answer`, `response.sources`, `response.confidence`, and `retrieval.results` from the `/query` response. `chunk_id` is the canonical identifier used to map response citations to the exact retrieved chunk displayed in the Context Inspector.
 
 The LangGraph orchestration layer currently lives in:
 
@@ -172,8 +181,16 @@ http://localhost:8000/docs
 
 ### Frontend
 
+Create `frontend/.env`:
+
+```env
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+Do not place `GROQ_API_KEY` or other backend secrets in the frontend environment.
+
 ```bash
-cd Frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -230,6 +247,8 @@ response
 
 The `response` section contains the grounded answer, cited sources and confidence indicator.
 
+Each retrieval result uses a canonical `chunk_id`. Response citations preserve the same `chunk_id`, allowing the frontend to open the exact retrieved chunk in the Context Inspector.
+
 ## Supported File Types
 
 - PDF
@@ -239,7 +258,7 @@ The `response` section contains the grounded answer, cited sources and confidenc
 
 ## Milestone 2 Validation
 
-The current backend Milestone 2 implementation has been validated with:
+The current Milestone 2 implementation has been validated with:
 
 - identifier/entity queries such as `What is the email of Name_1?`
 - unsupported queries where the knowledge base does not contain the requested information
@@ -247,6 +266,9 @@ The current backend Milestone 2 implementation has been validated with:
 - semantic-only queries with `exact_terms = []`
 - end-to-end LangGraph execution from Query Understanding through Response Generation
 - grounded responses with source citations and confidence
+- FastAPI `/query` integration with the React frontend
+- `chunk_id` consistency between retrieval results and response sources
+- Context Inspector source-to-chunk mapping
 
 ## Security
 

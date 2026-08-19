@@ -15,8 +15,8 @@ Pipeline:
           ↓
     Validated LLMResponse
 
-The agent is domain-agnostic and works with any retrieved knowledge
-base chunks.
+The agent is domain-agnostic and works with any retrieved
+knowledge-base chunks.
 """
 
 from __future__ import annotations
@@ -32,14 +32,18 @@ from .schemas import (
 )
 
 
-# Shared handler instance.
-# The underlying LLM is created once and reused.
+# ---------------------------------------------------------------------
+# Shared LLM handler
+# ---------------------------------------------------------------------
+
 _handler: GroqHandler | None = None
 
 
 def _get_handler() -> GroqHandler:
     """
     Return the shared Groq handler.
+
+    The handler is created once and reused across requests.
     """
 
     global _handler
@@ -50,6 +54,10 @@ def _get_handler() -> GroqHandler:
     return _handler
 
 
+# ---------------------------------------------------------------------
+# Chunk helpers
+# ---------------------------------------------------------------------
+
 def _get_chunk_metadata(
     chunk: Any,
 ) -> dict[str, Any]:
@@ -57,21 +65,12 @@ def _get_chunk_metadata(
     Safely extract metadata from a retrieved chunk.
     """
 
-    if not isinstance(
-        chunk,
-        dict,
-    ):
+    if not isinstance(chunk, dict):
         return {}
 
-    metadata = chunk.get(
-        "metadata",
-        {},
-    )
+    metadata = chunk.get("metadata", {})
 
-    if not isinstance(
-        metadata,
-        dict,
-    ):
+    if not isinstance(metadata, dict):
         return {}
 
     return metadata
@@ -83,20 +82,26 @@ def _get_chunk_id(
 ) -> str:
     """
     Return a stable chunk ID.
+
+    Canonical field:
+        chunk_id
+
+    Backward-compatible fallback:
+        id
     """
 
-    if isinstance(
-        chunk,
-        dict,
-    ):
-        chunk_id = chunk.get(
-            "id"
-        )
+    if isinstance(chunk, dict):
+
+        chunk_id = chunk.get("chunk_id")
 
         if chunk_id:
-            return str(
-                chunk_id
-            )
+            return str(chunk_id)
+
+        # Backward compatibility with older retrieval output.
+        legacy_id = chunk.get("id")
+
+        if legacy_id:
+            return str(legacy_id)
 
     return f"chunk_{index}"
 
@@ -106,92 +111,161 @@ def _get_source_name(
     chunk_id: str,
 ) -> str:
     """
-    Get the most useful human-readable source name.
+    Get a human-readable source name.
     """
 
-    metadata = _get_chunk_metadata(
-        chunk
-    )
+    metadata = _get_chunk_metadata(chunk)
 
-    filename = metadata.get(
-        "filename"
-    )
+    filename = metadata.get("filename")
 
     if filename:
-        return str(
-            filename
-        )
+        return str(filename)
 
-    source = metadata.get(
-        "source"
-    )
+    source = metadata.get("source")
 
     if source:
-        return str(
-            source
-        )
+        return str(source)
 
     return chunk_id
 
+
+def _get_relevance_score(
+    chunk: Any,
+) -> float | None:
+    """
+    Safely read the Retrieval Agent relevance score.
+    """
+
+    if not isinstance(chunk, dict):
+        return None
+
+    value = chunk.get("relevance_score")
+
+    if value is None:
+        return None
+
+    try:
+        return max(
+            0.0,
+            min(
+                1.0,
+                float(value),
+            ),
+        )
+    except (TypeError, ValueError):
+        return None
+
+
+# ---------------------------------------------------------------------
+# Citation extraction
+# ---------------------------------------------------------------------
 
 def _extract_citation_numbers(
     answer: str,
     chunk_count: int,
 ) -> list[int]:
     """
-    Extract valid [1], [2], [3] style citations.
+    Extract valid citation numbers from the LLM answer.
 
-    Invalid/hallucinated citation numbers are ignored.
+    Supported formats:
+
+        [1]
+        [2]
+        [3]
+
+    and also:
+
+        【1】
+        【2】
+        【3】
+
+    The second form is handled defensively because some LLM outputs
+    may use full-width Unicode brackets even when the prompt requests
+    normal square brackets.
+
+    Invalid citation numbers are ignored.
     """
 
     if not answer or chunk_count <= 0:
         return []
 
     matches = re.findall(
-        r"\[(\d+)\]",
+        r"(?:\[(\d+)\]|【(\d+)】)",
         answer,
     )
 
-    valid_numbers = sorted(
-        {
-            int(match)
-            for match in matches
-            if 1 <= int(match) <= chunk_count
-        }
+    numbers: set[int] = set()
+
+    for normal_match, unicode_match in matches:
+
+        value = (
+            normal_match
+            or unicode_match
+        )
+
+        try:
+            number = int(value)
+        except ValueError:
+            continue
+
+        if 1 <= number <= chunk_count:
+            numbers.add(number)
+
+    return sorted(numbers)
+
+
+def _normalize_citation_markers(
+    answer: str,
+) -> str:
+    """
+    Normalize Unicode citation markers to the standard project format.
+
+    Example:
+
+        【1】 → [1]
+        【2】 → [2]
+    """
+
+    if not answer:
+        return answer
+
+    return re.sub(
+        r"【(\d+)】",
+        r"[\1]",
+        answer,
     )
 
-    return valid_numbers
 
+# ---------------------------------------------------------------------
+# Source construction
+# ---------------------------------------------------------------------
 
 def _build_sources(
     answer: str,
     chunks: list[dict[str, Any] | str],
 ) -> list[Source]:
     """
-    Convert cited chunk numbers into validated Source objects.
+    Convert cited chunk numbers into Source objects.
 
     Each source preserves:
-        filename/source
-        reference number
-        chunk ID
-        relevance score
-        metadata
+
+        - filename/source
+        - reference number
+        - chunk ID
+        - relevance score
+        - metadata
     """
 
-    citation_numbers = (
-        _extract_citation_numbers(
-            answer,
-            len(chunks),
-        )
+    citation_numbers = _extract_citation_numbers(
+        answer,
+        len(chunks),
     )
 
     sources: list[Source] = []
 
     for number in citation_numbers:
 
-        chunk = chunks[
-            number - 1
-        ]
+        chunk = chunks[number - 1]
 
         chunk_id = _get_chunk_id(
             chunk,
@@ -199,7 +273,7 @@ def _build_sources(
         )
 
         metadata = _get_chunk_metadata(
-            chunk
+            chunk,
         )
 
         source_name = _get_source_name(
@@ -207,30 +281,9 @@ def _build_sources(
             chunk_id,
         )
 
-        relevance_score: float | None = None
-
-        if isinstance(
+        relevance_score = _get_relevance_score(
             chunk,
-            dict,
-        ):
-            value = chunk.get(
-                "relevance_score"
-            )
-
-            if value is not None:
-                try:
-                    relevance_score = max(
-                        0.0,
-                        min(
-                            1.0,
-                            float(value),
-                        ),
-                    )
-                except (
-                    TypeError,
-                    ValueError,
-                ):
-                    relevance_score = None
+        )
 
         sources.append(
             Source(
@@ -245,16 +298,18 @@ def _build_sources(
     return sources
 
 
+# ---------------------------------------------------------------------
+# Confidence calculation
+# ---------------------------------------------------------------------
+
 def _calculate_citation_coverage(
     sources: list[Source],
     chunks: list[dict[str, Any] | str],
 ) -> float:
     """
-    Measure how much of the supplied context was actually cited.
+    Measure how much of the supplied context was cited.
 
-    More cited relevant context => higher coverage.
-
-    The value is capped at 1.0.
+    This is a coverage signal, not a correctness probability.
     """
 
     if not chunks:
@@ -262,8 +317,7 @@ def _calculate_citation_coverage(
 
     return min(
         1.0,
-        len(sources)
-        / len(chunks),
+        len(sources) / len(chunks),
     )
 
 
@@ -271,10 +325,10 @@ def _calculate_retrieval_quality(
     sources: list[Source],
 ) -> float:
     """
-    Calculate the average retrieval relevance of cited chunks.
+    Calculate the average relevance score of cited chunks.
 
-    If the retrieval results do not expose relevance_score, use a
-    conservative fallback instead of pretending confidence is high.
+    If relevance scores are unavailable, use a conservative
+    fallback for cited sources.
     """
 
     scores = [
@@ -286,9 +340,7 @@ def _calculate_retrieval_quality(
     if not scores:
         return 0.50 if sources else 0.0
 
-    return sum(scores) / len(
-        scores
-    )
+    return sum(scores) / len(scores)
 
 
 def _estimate_confidence(
@@ -296,24 +348,21 @@ def _estimate_confidence(
     chunks: list[dict[str, Any] | str],
 ) -> float:
     """
-    Estimate response confidence from two independent signals:
+    Estimate confidence from:
 
-        1. Retrieval quality:
-           How relevant were the chunks that were cited?
-
-        2. Citation coverage:
-           How much of the supplied context did the answer use?
+        1. Retrieval quality
+        2. Citation coverage
 
     This is a heuristic confidence indicator, NOT a calibrated
-    probability.
+    probability of factual correctness.
     """
 
     if not chunks:
         return 0.0
 
     if not sources:
-        # The model returned an uncited answer even though context
-        # was available. Treat this as low confidence.
+        # Context was available but the model failed to produce
+        # a recognizable citation.
         return 0.15
 
     retrieval_quality = (
@@ -329,6 +378,8 @@ def _estimate_confidence(
         )
     )
 
+    # Retrieval quality is intentionally dominant because not every
+    # valid answer needs to cite every retrieved candidate.
     confidence = (
         retrieval_quality * 0.70
         + citation_coverage * 0.30
@@ -345,6 +396,10 @@ def _estimate_confidence(
         2,
     )
 
+
+# ---------------------------------------------------------------------
+# Main response-generation entry point
+# ---------------------------------------------------------------------
 
 def generate_response(
     question: str,
@@ -368,11 +423,10 @@ def generate_response(
     # Validate question
     # ---------------------------------------------------------------
 
-    if not isinstance(
-        question,
-        str,
-    ) or not question.strip():
-
+    if (
+        not isinstance(question, str)
+        or not question.strip()
+    ):
         return LLMResponse(
             answer="",
             sources=[],
@@ -387,10 +441,7 @@ def generate_response(
         chunk
         for chunk in (chunks or [])
         if (
-            isinstance(
-                chunk,
-                dict,
-            )
+            isinstance(chunk, dict)
             and str(
                 chunk.get(
                     "content",
@@ -399,10 +450,7 @@ def generate_response(
             ).strip()
         )
         or (
-            isinstance(
-                chunk,
-                str,
-            )
+            isinstance(chunk, str)
             and chunk.strip()
         )
     ]
@@ -455,7 +503,15 @@ def generate_response(
         )
 
     # ---------------------------------------------------------------
-    # Extract cited sources
+    # Normalize citation formatting
+    # ---------------------------------------------------------------
+
+    answer = _normalize_citation_markers(
+        answer
+    )
+
+    # ---------------------------------------------------------------
+    # Extract sources
     # ---------------------------------------------------------------
 
     sources = _build_sources(
@@ -479,11 +535,15 @@ def generate_response(
     )
 
 
+# ---------------------------------------------------------------------
+# Standalone test
+# ---------------------------------------------------------------------
+
 if __name__ == "__main__":
 
     sample_chunks = [
         {
-            "id": "chunk_001",
+            "chunk_id": "chunk_001",
             "content": (
                 "Employees are entitled to "
                 "12 days of paid leave per year."
@@ -495,7 +555,7 @@ if __name__ == "__main__":
             "relevance_score": 0.92,
         },
         {
-            "id": "chunk_002",
+            "chunk_id": "chunk_002",
             "content": (
                 "Sick leave longer than "
                 "2 days requires a medical certificate."

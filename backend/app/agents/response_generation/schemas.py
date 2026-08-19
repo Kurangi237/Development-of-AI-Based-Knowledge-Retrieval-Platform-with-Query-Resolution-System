@@ -1,7 +1,8 @@
 """
 Schemas used by the Response Generation Agent.
 
-The schemas are designed to preserve:
+The schemas preserve:
+
 - grounded answer
 - source citation
 - source/chunk identity
@@ -20,42 +21,43 @@ from pydantic import BaseModel, Field
 class Source(BaseModel):
     """
     A source referenced by the generated answer.
-
-    `reference` is the citation marker used inside the answer,
-    for example "[1]".
-
-    `source` is a human-readable source name, normally the
-    uploaded filename.
-
-    `chunk_id` identifies the actual retrieved chunk.
-
-    `relevance_score` preserves the score calculated by the
-    Retrieval Agent when available.
     """
 
     source: str = Field(
-        description="Human-readable source name, usually the filename."
+        description=(
+            "Human-readable source name, "
+            "usually the uploaded filename."
+        )
     )
 
     reference: str = Field(
-        description="Citation marker used in the answer, e.g. [1]."
+        description=(
+            "Citation marker used in the answer, "
+            "for example [1]."
+        )
     )
 
     chunk_id: str | None = Field(
         default=None,
-        description="Unique identifier of the retrieved chunk."
+        description=(
+            "Unique identifier of the retrieved chunk."
+        )
     )
 
     relevance_score: float | None = Field(
         default=None,
         ge=0.0,
         le=1.0,
-        description="Retrieval relevance score for the cited chunk."
+        description=(
+            "Retrieval relevance score of the cited chunk."
+        )
     )
 
     metadata: dict[str, Any] = Field(
         default_factory=dict,
-        description="Metadata associated with the cited chunk."
+        description=(
+            "Metadata associated with the cited chunk."
+        )
     )
 
 
@@ -65,12 +67,18 @@ class LLMResponse(BaseModel):
     """
 
     answer: str = Field(
-        description="Grounded answer generated from retrieved context."
+        description=(
+            "Grounded answer generated only from "
+            "the retrieved context."
+        )
     )
 
     sources: list[Source] = Field(
         default_factory=list,
-        description="Sources explicitly cited by the answer."
+        description=(
+            "Retrieved chunks explicitly cited "
+            "by the generated answer."
+        )
     )
 
     confidence: float = Field(
@@ -78,8 +86,8 @@ class LLMResponse(BaseModel):
         ge=0.0,
         le=1.0,
         description=(
-            "Confidence estimate based on retrieval relevance "
-            "and source citation coverage."
+            "Heuristic confidence based on retrieval "
+            "relevance and citation coverage."
         )
     )
 
@@ -88,8 +96,9 @@ if __name__ == "__main__":
 
     response = LLMResponse(
         answer=(
-            "The Retrieval Agent performs semantic search "
-            "and ranks retrieved chunks by relevance. [1]"
+            "The Retrieval Agent performs semantic "
+            "search and ranks retrieved chunks "
+            "by relevance. [1]"
         ),
         sources=[
             Source(
@@ -106,8 +115,12 @@ if __name__ == "__main__":
         confidence=0.91,
     )
 
-    print("Schema validation successful!")
+    print(
+        "Schema validation successful!"
+    )
+
     print()
+
     print(
         response.model_dump_json(
             indent=4
