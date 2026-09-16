@@ -41,6 +41,7 @@ Thumbs.db
 # MySQL Database
 # -------------------------
 backend/memory.db
+querynest.db
 
 # -------------------------
 # Nested duplicate project copy

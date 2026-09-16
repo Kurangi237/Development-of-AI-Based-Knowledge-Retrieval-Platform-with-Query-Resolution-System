@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 
 # Define the project's base directory.
@@ -37,3 +38,7 @@ CORS_ALLOW_ORIGINS = [
     "http://localhost:5174",
     "http://127.0.0.1:5174",
 ]
+
+frontend_url = os.getenv("FRONTEND_URL")
+if frontend_url:
+    CORS_ALLOW_ORIGINS.append(frontend_url.rstrip("/"))
