@@ -2,9 +2,8 @@ services:
   - type: web
     name: querynest-api
     runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn app.main:app --app-dir backend --host 0.0.0.0 --port $PORT
     healthCheckPath: /
     envVars:
       - key: GROQ_API_KEY
@@ -21,13 +20,14 @@ services:
         value: "60"
       - key: FRONTEND_URL
         sync: false
+      - key: PYTHON_VERSION
+        value: 3.13.3
 
   - type: web
     name: querynest-frontend
     runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
     envVars:
       - key: VITE_API_BASE_URL
         sync: false
